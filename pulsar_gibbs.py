@@ -60,11 +60,12 @@ class PulsarBlockGibbs(object):
         self.pulsar_name = pta.pulsars[0]
         self.hypersample = hypersample
         self.ecorrsample = ecorrsample
-        if np.any(['basis_ecorr' in key for 
-                   key in self.pta._signal_dict.keys()]):
-            pass
-        else:
-            print('ERROR: Gibbs outlier analysis must use basis_ecorr, not kernel ecorr')
+
+        # checking if kernel ecorr is being used
+        signal_names = [pta.signals[sc].__class__.__name__
+                        for sc in pta.signals]  # list of signal classes
+        if np.any(['EcorrKernelNoise' in sc for sc in signal_names]):
+            raise TypeError('Gibbs outlier analysis must use basis_ecorr, not kernel ecorr')
 
         # For now assume one pulsar
         self._residuals = self.pta.get_residuals()[0]
@@ -702,5 +703,8 @@ class PulsarBlockGibbs(object):
                 #sys.stdout.write('Finished %g percent in %g seconds.'%(ii / niter * 100, 
                 #                                                       time.time()-tstart))
                 #sys.stdout.flush()
-                np.savetxt(f'{outdir}/chain.txt', self.chain[:ii+1, :])
-                np.savetxt(f'{outdir}/bchain.txt', self.bchain[:ii+1, :])
+
+                # TO DO: these really should be hdf5 files. Make structured
+                # Also add functionality to read with la-forge
+                np.save(f'{outdir}/chain.npy', self.chain[:ii+1, :])
+                np.save(f'{outdir}/bchain.npy', self.bchain[:ii+1, :])
